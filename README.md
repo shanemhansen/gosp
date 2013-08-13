@@ -27,6 +27,14 @@ Disadvantages
 Example
 =======
 
+    cat > test.tmpl
+    hello, my name is shane
+    <%for i:=0; i<10; i++ {%>
+    Yo <%=i%>
+    <%}%>
+    done
+    Control-D
+
     go run compiler.go < test.tmpl > out.go
     go run out.go
 
