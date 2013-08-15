@@ -1,25 +1,25 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"flag"
 	"fmt"
 	"io"
 	"os"
-    "bufio"
 	"path"
 	"regexp"
-    "strings"
+	"strings"
 )
 
 var packageName string
 var printedMeta = false
+
 type KeyValue [2]string
 type Directive struct {
-    Imports []string
-    Params []KeyValue
+	Imports []string
+	Params  []KeyValue
 }
-
 
 func main() {
 	ext := ".gosp"
@@ -42,54 +42,54 @@ func main() {
 	}
 }
 func compile(in io.Reader, out io.Writer, funcName string) {
-    reader  := bufio.NewReader(in)
-    directive := Directive{}
-    //process all directives at beginning of file
-    for {
-        //check for line beginnig with '@'
-        peekaboo, err := reader.Peek(1)
-        if err != nil {
-            panic(err)
-        }
-        if peekaboo[0] != '@' {
-            break
-        }
-        //found line, read it in and process it.
-        line ,err := reader.ReadString('\n')
-        if err != nil {
-            panic(err)
-        }
-        if strings.HasPrefix(line, "@import") {
-            directive.Imports = append(directive.Imports, line[1:])
-            continue
-        }
-        if strings.HasPrefix(line, "@(") {
-            line = line[2:len(line)-2]
-            for _, parameter := range strings.Split(line, ",") {
-                parameter := strings.Trim(parameter, " ")
-                kv := strings.Split(parameter, " ")
-                param := KeyValue{kv[0], kv[1]}
-                directive.Params = append(directive.Params, param)
-            }
-            continue
-        }
-    }
+	reader := bufio.NewReader(in)
+	directive := Directive{}
+	//process all directives at beginning of file
+	for {
+		//check for line beginnig with '@'
+		peekaboo, err := reader.Peek(1)
+		if err != nil {
+			panic(err)
+		}
+		if peekaboo[0] != '@' {
+			break
+		}
+		//found line, read it in and process it.
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			panic(err)
+		}
+		if strings.HasPrefix(line, "@import") {
+			directive.Imports = append(directive.Imports, line[1:])
+			continue
+		}
+		if strings.HasPrefix(line, "@(") {
+			line = line[2 : len(line)-2]
+			for _, parameter := range strings.Split(line, ",") {
+				parameter := strings.Trim(parameter, " ")
+				kv := strings.Split(parameter, " ")
+				param := KeyValue{kv[0], kv[1]}
+				directive.Params = append(directive.Params, param)
+			}
+			continue
+		}
+	}
 	data := make([]byte, 1)
 
 	LITERAL_OUTPUT := 0
 	CODE := 1
 	WAITINGFORBEGINCODE := 2
 	WAITINGFORENDCODE := 3
-    
+
 	state := LITERAL_OUTPUT
 	fmt.Fprintf(out,
 		`package %s
 import "fmt"
 import "io"
 `, packageName)
-    for _, pkg := range directive.Imports {
-        fmt.Fprintf(out, "%s\n", pkg)
-    }
+	for _, pkg := range directive.Imports {
+		fmt.Fprintf(out, "%s\n", pkg)
+	}
 	if !printedMeta {
 		printedMeta = true
 		out.Write([]byte(`
@@ -97,17 +97,17 @@ var _ fmt.Stringer
 type Template func(io.Writer)
 `))
 	}
-    var params string
-    for _, param := range directive.Params {
-        params += "," + param[0] + " " + param[1]
-    }
-    params = params[1:]
+	var params string
+	for _, param := range directive.Params {
+		params += "," + param[0] + " " + param[1]
+	}
+	params = params[1:]
 	fmt.Fprintf(out,
 		`func %s(%s) (func(io.Writer)) {
 return func(output io.Writer) {
     output.Write([]byte(%s`,
 		funcName,
-        params,
+		params,
 		"`",
 	)
 	counter := 0
