@@ -5,14 +5,30 @@ import (
     "io"
     "fmt"
     "flag"
+    "bytes"
+    "path"
+    "regexp"
 )
 
 var packageName string
-var funcName string
 func main() {
     flag.StringVar(&packageName,"package", "template", "The package name to store your template under")
-    flag.StringVar(&funcName,"func", "Render", "The package name to store your template under")
     flag.Parse()
+    args := flag.Args()
+    for _, fname := range args {
+        input, err := os.Open(fname)
+        if err != nil {
+            panic(err)
+        }
+        funcName := camelCase(path.Base(fname))
+        output, err := os.Create(path.Join(path.Dir(fname),path.Base(fname) + "sp"))
+        if err != nil {
+            panic(err)
+        }
+        compile(input, output, funcName)
+    }
+}
+func compile(reader io.Reader, out io.Writer, funcName string) {
 	data := make([]byte, 1)
 
 	LITERAL_OUTPUT := 0
@@ -21,11 +37,15 @@ func main() {
 	WAITINGFORENDCODE := 3
 
 	state := LITERAL_OUTPUT
-	reader := os.Stdin
-    fmt.Fprintf(os.Stdout,
-        "package %s\nimport \"fmt\"\nimport \"io\"\n var gospHolder fmt.Stringer\nfunc %s(output io.Writer, content func(io.Writer)) {\noutput.Write([]byte(`",
+    fmt.Fprintf(out,
+        `package %s
+import "fmt"
+import "io"
+var _ fmt.Stringer
+func %s(output io.Writer, content func(io.Writer)) {\noutput.Write([]byte(%s`,
         packageName,
         funcName,
+        "`",
     )
 	counter := 0
 	expressionFlag :=0
@@ -51,7 +71,7 @@ OUTER:
 				state = WAITINGFORBEGINCODE
 				counter = 0
 			} else {
-				os.Stdout.Write([]byte{char})
+				out.Write([]byte{char})
 			}
 		case CODE:
 			if char == '%' {
@@ -59,17 +79,17 @@ OUTER:
 				counter = 0
 			} else if char == '=' && counter == 1 {
 				expressionFlag = 1
-				os.Stdout.Write([]byte(`fmt.Fprintf(output, "%v",`))
+				out.Write([]byte(`fmt.Fprintf(output, "%v",`))
 			} else {
-				os.Stdout.Write([]byte{char})
+				out.Write([]byte{char})
 			}
 		case WAITINGFORBEGINCODE:
 			if char == '%' {
 				state = CODE
 				counter = 0
-				os.Stdout.Write([]byte("`))\n"))
+				out.Write([]byte("`))\n"))
 			} else {
-				os.Stdout.Write([]byte{'<', char})
+				out.Write([]byte{'<', char})
 				state = LITERAL_OUTPUT
 				counter = 0
 			}
@@ -79,16 +99,25 @@ OUTER:
 				counter = 0
 				if expressionFlag == 1 {
 					expressionFlag = 0
-					os.Stdout.Write([]byte(")"))
+					out.Write([]byte(")"))
 				}
-				os.Stdout.Write([]byte("\noutput.Write([]byte(`"))
+				out.Write([]byte("\noutput.Write([]byte(`"))
 			} else {
-				os.Stdout.Write([]byte{'%'})
+				out.Write([]byte{'%'})
 				state = CODE
 				counter = 0
 			}
 		}
 	}
-	os.Stdout.Write([]byte("`))\n}\n"))
+	out.Write([]byte("`))\n}\n"))
 
+}
+func camelCase(src string) string {
+    camelingRegex := regexp.MustCompile("[0-9A-Za-z]+")
+    byteSrc := []byte(src)
+    chunks := camelingRegex.FindAll(byteSrc, -1)
+    for idx, val := range chunks {
+        chunks[idx] = bytes.Title(val)
+    }
+    return string(bytes.Join(chunks, nil))
 }
