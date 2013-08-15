@@ -11,7 +11,9 @@ import (
 )
 
 var packageName string
+var printedMeta = false
 func main() {
+    ext := ".gosp"
     flag.StringVar(&packageName,"package", "template", "The package name to store your template under")
     flag.Parse()
     args := flag.Args()
@@ -20,8 +22,10 @@ func main() {
         if err != nil {
             panic(err)
         }
-        funcName := camelCase(path.Base(fname))
-        output, err := os.Create(path.Join(path.Dir(fname),path.Base(fname) + "sp"))
+        funcName := camelCase(path.Base(fname[:len(fname)-len(ext)]))
+        ofname := path.Base(fname)
+        ofname = ofname[:len(ofname)-2]
+        output, err := os.Create(path.Join(path.Dir(fname), ofname))
         if err != nil {
             panic(err)
         }
@@ -42,8 +46,15 @@ func compile(reader io.Reader, out io.Writer, funcName string) {
 import "fmt"
 import "io"
 var _ fmt.Stringer
-func %s(output io.Writer, content func(io.Writer)) {\noutput.Write([]byte(%s`,
-        packageName,
+`, packageName)
+    if (!printedMeta) {
+        printedMeta = true
+        out.Write([]byte(`type Template func(io.Writer, Template)
+`))
+    }
+    fmt.Fprintf(out,
+        `func %s(output io.Writer, content Template) {
+    output.Write([]byte(%s`,
         funcName,
         "`",
     )
