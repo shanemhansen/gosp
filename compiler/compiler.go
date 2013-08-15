@@ -1,19 +1,32 @@
 package main
 
-import "os"
-import "io"
-import "bufio"
+import (
+    "os"
+    "io"
+    "fmt"
+    "flag"
+)
 
+var packageName string
+var funcName string
 func main() {
+    flag.StringVar(&packageName,"package", "template", "The package name to store your template under")
+    flag.StringVar(&funcName,"func", "Render", "The package name to store your template under")
+    flag.Parse()
 	data := make([]byte, 1)
+
 	LITERAL_OUTPUT := 0
 	CODE := 1
 	WAITINGFORBEGINCODE := 2
 	WAITINGFORENDCODE := 3
 
 	state := LITERAL_OUTPUT
-	reader := bufio.NewReader(os.Stdin)
-	os.Stdout.Write([]byte("package main\nfunc main() {\nprint(`"))
+	reader := os.Stdin
+    fmt.Fprintf(os.Stdout,
+        "package %s\nimport \"fmt\"\nimport \"io\"\nfunc %s(output io.Writer) {\noutput.Write([]byte(`",
+        packageName,
+        funcName,
+    )
 	counter := 0
 	expressionFlag :=0
 OUTER:
@@ -46,7 +59,7 @@ OUTER:
 				counter = 0
 			} else if char == '=' && counter == 1 {
 				expressionFlag = 1
-				os.Stdout.Write([]byte("print("))
+				os.Stdout.Write([]byte(`fmt.Fprintf(output, "%v",`))
 			} else {
 				os.Stdout.Write([]byte{char})
 			}
@@ -54,7 +67,7 @@ OUTER:
 			if char == '%' {
 				state = CODE
 				counter = 0
-				os.Stdout.Write([]byte("`)\n"))
+				os.Stdout.Write([]byte("`))\n"))
 			} else {
 				os.Stdout.Write([]byte{'<'})
 				state = LITERAL_OUTPUT
@@ -68,7 +81,7 @@ OUTER:
 					expressionFlag = 0
 					os.Stdout.Write([]byte(")"))
 				}
-				os.Stdout.Write([]byte("\nprint(`"))
+				os.Stdout.Write([]byte("\noutput.Write([]byte(`"))
 			} else {
 				os.Stdout.Write([]byte{'%'})
 				state = CODE
@@ -76,6 +89,6 @@ OUTER:
 			}
 		}
 	}
-	os.Stdout.Write([]byte("`)\n}\n"))
+	os.Stdout.Write([]byte("`))\n}\n"))
 
 }
