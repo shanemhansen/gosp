@@ -23,7 +23,7 @@ func main() {
 	state := LITERAL_OUTPUT
 	reader := os.Stdin
     fmt.Fprintf(os.Stdout,
-        "package %s\nimport \"fmt\"\nimport \"io\"\nfunc %s(output io.Writer) {\noutput.Write([]byte(`",
+        "package %s\nimport \"fmt\"\nimport \"io\"\n var gospHolder fmt.Stringer\nfunc %s(output io.Writer, content func(io.Writer)) {\noutput.Write([]byte(`",
         packageName,
         funcName,
     )
@@ -69,7 +69,7 @@ OUTER:
 				counter = 0
 				os.Stdout.Write([]byte("`))\n"))
 			} else {
-				os.Stdout.Write([]byte{'<'})
+				os.Stdout.Write([]byte{'<', char})
 				state = LITERAL_OUTPUT
 				counter = 0
 			}
