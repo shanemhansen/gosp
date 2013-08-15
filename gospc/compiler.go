@@ -1,65 +1,116 @@
 package main
 
 import (
-    "os"
-    "io"
-    "fmt"
-    "flag"
-    "bytes"
-    "path"
-    "regexp"
+	"bytes"
+	"flag"
+	"fmt"
+	"io"
+	"os"
+    "bufio"
+	"path"
+	"regexp"
+    "strings"
 )
 
 var packageName string
 var printedMeta = false
-func main() {
-    ext := ".gosp"
-    flag.StringVar(&packageName,"package", "template", "The package name to store your template under")
-    flag.Parse()
-    args := flag.Args()
-    for _, fname := range args {
-        input, err := os.Open(fname)
-        if err != nil {
-            panic(err)
-        }
-        funcName := camelCase(path.Base(fname[:len(fname)-len(ext)]))
-        ofname := path.Base(fname)
-        ofname = ofname[:len(ofname)-2]
-        output, err := os.Create(path.Join(path.Dir(fname), ofname))
-        if err != nil {
-            panic(err)
-        }
-        compile(input, output, funcName)
-    }
+type KeyValue [2]string
+type Directive struct {
+    Imports []string
+    Params []KeyValue
 }
-func compile(reader io.Reader, out io.Writer, funcName string) {
+
+
+func main() {
+	ext := ".gosp"
+	flag.StringVar(&packageName, "package", "template", "The package name to store your template under")
+	flag.Parse()
+	args := flag.Args()
+	for _, fname := range args {
+		input, err := os.Open(fname)
+		if err != nil {
+			panic(err)
+		}
+		funcName := camelCase(path.Base(fname[:len(fname)-len(ext)]))
+		ofname := path.Base(fname)
+		ofname = ofname[:len(ofname)-2]
+		output, err := os.Create(path.Join(path.Dir(fname), ofname))
+		if err != nil {
+			panic(err)
+		}
+		compile(input, output, funcName)
+	}
+}
+func compile(in io.Reader, out io.Writer, funcName string) {
+    reader  := bufio.NewReader(in)
+    directive := Directive{}
+    //process all directives at beginning of file
+    for {
+        //check for line beginnig with '@'
+        peekaboo, err := reader.Peek(1)
+        if err != nil {
+            panic(err)
+        }
+        if peekaboo[0] != '@' {
+            break
+        }
+        //found line, read it in and process it.
+        line ,err := reader.ReadString('\n')
+        if err != nil {
+            panic(err)
+        }
+        if strings.HasPrefix(line, "@import") {
+            directive.Imports = append(directive.Imports, line[1:])
+            continue
+        }
+        if strings.HasPrefix(line, "@(") {
+            line = line[2:len(line)-2]
+            for _, parameter := range strings.Split(line, ",") {
+                parameter := strings.Trim(parameter, " ")
+                kv := strings.Split(parameter, " ")
+                param := KeyValue{kv[0], kv[1]}
+                directive.Params = append(directive.Params, param)
+            }
+            continue
+        }
+    }
 	data := make([]byte, 1)
 
 	LITERAL_OUTPUT := 0
 	CODE := 1
 	WAITINGFORBEGINCODE := 2
 	WAITINGFORENDCODE := 3
-
+    
 	state := LITERAL_OUTPUT
-    fmt.Fprintf(out,
-        `package %s
+	fmt.Fprintf(out,
+		`package %s
 import "fmt"
 import "io"
-var _ fmt.Stringer
 `, packageName)
-    if (!printedMeta) {
-        printedMeta = true
-        out.Write([]byte(`type Template func(io.Writer, Template)
-`))
+    for _, pkg := range directive.Imports {
+        fmt.Fprintf(out, "%s\n", pkg)
     }
-    fmt.Fprintf(out,
-        `func %s(output io.Writer, content Template) {
+	if !printedMeta {
+		printedMeta = true
+		out.Write([]byte(`
+var _ fmt.Stringer
+type Template func(io.Writer)
+`))
+	}
+    var params string
+    for _, param := range directive.Params {
+        params += "," + param[0] + " " + param[1]
+    }
+	fmt.Fprintf(out,
+		`func %s(content Template%s) (func(io.Writer)) {
+return func(output io.Writer) {
     output.Write([]byte(%s`,
-        funcName,
-        "`",
-    )
+		funcName,
+        params,
+		"`",
+	)
 	counter := 0
-	expressionFlag :=0
+	expressionFlag := 0
 OUTER:
 	for {
 		n, err := reader.Read(data)
@@ -120,15 +171,15 @@ OUTER:
 			}
 		}
 	}
-	out.Write([]byte("`))\n}\n"))
+	out.Write([]byte("`))\n}\n}\n"))
 
 }
 func camelCase(src string) string {
-    camelingRegex := regexp.MustCompile("[0-9A-Za-z]+")
-    byteSrc := []byte(src)
-    chunks := camelingRegex.FindAll(byteSrc, -1)
-    for idx, val := range chunks {
-        chunks[idx] = bytes.Title(val)
-    }
-    return string(bytes.Join(chunks, nil))
+	camelingRegex := regexp.MustCompile("[0-9A-Za-z]+")
+	byteSrc := []byte(src)
+	chunks := camelingRegex.FindAll(byteSrc, -1)
+	for idx, val := range chunks {
+		chunks[idx] = bytes.Title(val)
+	}
+	return string(bytes.Join(chunks, nil))
 }
