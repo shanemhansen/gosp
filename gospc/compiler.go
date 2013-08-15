@@ -101,8 +101,9 @@ type Template func(io.Writer)
     for _, param := range directive.Params {
         params += "," + param[0] + " " + param[1]
     }
+    params = params[1:]
 	fmt.Fprintf(out,
-		`func %s(content Template%s) (func(io.Writer)) {
+		`func %s(%s) (func(io.Writer)) {
 return func(output io.Writer) {
     output.Write([]byte(%s`,
 		funcName,
