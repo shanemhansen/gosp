@@ -23,7 +23,6 @@ type Directive struct {
 
 func main() {
 	ext := ".gosp"
-	flag.StringVar(&packageName, "package", "template", "The package name to store your template under")
 	flag.Parse()
 	args := flag.Args()
 	for _, fname := range args {
@@ -34,6 +33,7 @@ func main() {
 		funcName := camelCase(path.Base(fname[:len(fname)-len(ext)]))
 		ofname := path.Base(fname)
 		ofname = ofname[:len(ofname)-2]
+        packageName = path.Base(path.Dir(fname))
 		output, err := os.Create(path.Join(path.Dir(fname), ofname))
 		if err != nil {
 			panic(err)
