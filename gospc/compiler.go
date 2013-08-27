@@ -8,14 +8,13 @@ usage: gospc templates/*gosp
 package main
 
 import (
+	"bytes"
 	"flag"
+	"github.com/shanemhansen/gosp"
 	"os"
-   	"path"
-    "bytes"
+	"path"
 	"regexp"
-    "github.com/shanemhansen/gosp"
 )
-
 
 func main() {
 	ext := ".gosp"
@@ -29,7 +28,7 @@ func main() {
 		funcName := camelCase(path.Base(fname[:len(fname)-len(ext)]))
 		ofname := path.Base(fname)
 		ofname = ofname[:len(ofname)-2]
-        packageName := path.Base(path.Dir(fname))
+		packageName := path.Base(path.Dir(fname))
 		output, err := os.Create(path.Join(path.Dir(fname), ofname))
 		if err != nil {
 			panic(err)

@@ -4,16 +4,18 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-    "strings"
+	"strings"
 )
 
 // KeyValue is a simple hash type
 type KeyValue [2]string
+
 // Compiler directives such as import and type declarations
 type Directive struct {
 	Imports []string
 	Params  []KeyValue
 }
+
 var printedMeta = false
 
 // Compile operates on the steam provided by in, writing output to out
@@ -27,9 +29,9 @@ func Compile(in io.Reader, out io.Writer, funcName, packageName string) {
 	for {
 		//check for line beginnig with '@'
 		peekaboo, err := reader.Peek(1)
-        if err == io.EOF {
-            break
-        }
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
 			panic(err)
 		}
@@ -83,11 +85,11 @@ type Template func(io.Writer)
 	for _, param := range directive.Params {
 		params += "," + param[0] + " " + param[1]
 	}
-    if len(params) == 0 {
-        params = ""
-    } else {
-        params = params[1:]
-    }
+	if len(params) == 0 {
+		params = ""
+	} else {
+		params = params[1:]
+	}
 	fmt.Fprintf(out,
 		`func %s(%s) (func(io.Writer)) {
 return func(output io.Writer) {
