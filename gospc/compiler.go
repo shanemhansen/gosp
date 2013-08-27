@@ -1,3 +1,10 @@
+/*
+gospc: The go server page compiler. Takes a set of files on the command line like
+something_foo.gosp, and generates a file something_foo.go with a function defined
+named SomethingFoo(io.Writer)
+
+usage: gospc templates/*gosp
+*/
 package main
 
 import (
@@ -8,7 +15,6 @@ import (
 	"regexp"
     "github.com/shanemhansen/gosp"
 )
-
 
 
 func main() {
