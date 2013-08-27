@@ -32,7 +32,8 @@ Example
 
     cat > template/tmpl.gosp
     @(import "runtime")
-    hello, my name is shane.
+    @(name: string)
+    hello, my name is <%=name%>.
     This file was compiled using <%=runtime.Compiler%>
     <%for i:=0; i<10; i++ {%>
     Yo <%=i%>
