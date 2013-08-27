@@ -46,7 +46,7 @@ Example
 Docs
 ====
 
-http://godoc.org/github.com/shanemhansen/gosp
+[[godoc | http://godoc.org/github.com/shanemhansen/gosp]]
 
 A plain text file is a valid gosp program. Go code can be embedded
 using the well-known <% %> syntax. Go values can be printed (through the fmt package)
