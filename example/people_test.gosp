@@ -1,0 +1,4 @@
+@(family Person)
+<% for _, child := range family.Everyone() {%>
+<%= child.Name %> is <%=child.Age%>
+<% } %>

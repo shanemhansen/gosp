@@ -5,7 +5,8 @@ gosp - Go Server Pages
 Gosp is a strongly typed templating language. Put the bug finding abilities
 and speed of the golang compiler to work for you. It eschews reflection
 and the  el (expression language) approach taken by the go stdlib in favor
-of leaning on go's type inference and compile time bug finding.
+of leaning on go's type inference and compile time bug finding. Our lies,
+excuse me, benchmarks, imply gosp is about 5 to 7 times faster than text/template
 
 
 Features
@@ -16,7 +17,7 @@ Features
 * Output is streamable to any io.Writer.
 * No hoops to jump through for registering functions, no new syntax for calling them.
 * Deployment is as easy as deploying any other go code/package.
-* Performance is largely determined by what the go runtime can provide.
+* Performance is basically as good as go gets. Included benchmarks show beating text/template by 5 to 7x.
 * Tested
 
 
@@ -32,7 +33,7 @@ Example
 
     cat > template/tmpl.gosp
     @(import "runtime")
-    @(name: string)
+    @(name string)
     hello, my name is <%=name%>.
     This file was compiled using <%=runtime.Compiler%>
     <%for i:=0; i<10; i++ {%>

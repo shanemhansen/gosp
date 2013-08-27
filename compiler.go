@@ -85,6 +85,8 @@ type Template func(io.Writer)
 	}
     if len(params) == 0 {
         params = ""
+    } else {
+        params = params[1:]
     }
 	fmt.Fprintf(out,
 		`func %s(%s) (func(io.Writer)) {
